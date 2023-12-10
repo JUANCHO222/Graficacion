@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+ <html lang="en">
+ <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convoluciones</title>
+ </head>
+ <body>
+    <canvas id="canvas"></canvas>
+    <canvas id="resultado"></canvas>
+    <script type="text/javascript">
+
+        var image = new Image();
+        image.onload = imageLoaded;
+        image.src = "resources/tiger.jpg";
+
+        function imageLoaded() {
+            var canvas = document.getElementById("canvas");
+            var ctx = canvas.getContext("2d");
+
+            canvas.width = image.width;
+            canvas.height = image.height;
+
+            ctx.drawImage(image, 0, 0, image.width, image.height);
+
+            blancoYNegro(canvas);
+
+            var resultado =document.getElementById("resultado");
+            convolucionar(canvas, resultado);
+
+        }
+
+        function blancoYNegro(canvas) {
+            var ctx = canvas.getContext("2d");
+            var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var pixeles =imgData.data;
+
+            for (var p=0; p < pixeles.length; p += 4) {
+
+                var rojo = pixeles[p];
+                var verde = pixeles[p+1];
+                var azul = pixeles[p+2];
+                var alpha = pixeles[p+3];
+
+               /* var gris = (rojo + verde + azul) / 3;
+
+
+                pixeles[p] = gris;
+                pixeles[p+1] = gris;
+                pixeles[p+2] = gris;*/
+
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+        function convolucionar(canvasFuente, canvasDestino){
+            var ctxFuente = canvasFuente.getContext("2d");
+            var imgDataFuente = ctxFuente.getImageData(0, 0, canvasFuente.width, canvasFuente.height);
+            var pixelesFuente = imgDataFuente.data;
+
+            canvasDestino.width =canvasFuente.width;
+            canvasDestino.height = canvasFuente.height;
+
+            var ctxDestino = canvasDestino.getContext("2d");
+            var imgDataDestino = ctxDestino.getImageData(0, 0, canvasDestino.width, canvasDestino.height);
+            var pixelesDestino = imgDataDestino.data;
+
+            /*var kernel = [
+                [-1,-1,-1],
+                [-1, 8,-1],
+                [-1,-1,-1],
+            ];*/
+            /*var kernel = [
+                [ 0,-1, 0],
+                [-1, 5,-1],
+                [ 0,-1, 0],
+            ];*/
+            var sobelVertical = [
+                [-1, 0, 1],
+                [-2, 0, 2],
+                [-1, 0, 1],
+            ];
+            var sobelHorizontal = [
+                [-1,-2,-1],
+                [ 0, 0, 0],
+                [ 1, 2, 1],
+            ];
+
+
+            for (var y=1; y < canvasFuente.height-1; y++) {
+                for (var x=1; x < canvasFuente.width-1; x++) {
+
+                    var idx = ((y*canvasFuente.width) + x) * 4;
+                    
+                    var totalR_X = 0;
+                    var totalR_Y = 0;
+                    var totalG_X = 0;
+                    var totalG_Y = 0;
+                    var totalB_X = 0;
+                    var totalB_Y = 0;
+        
+                    for (var kernelY = 0; kernelY < 3; kernelY++) {
+                        for (var kernelX = 0; kernelX < 3; kernelX++) {
+                            var pixelIdx = (((y + (kernelY - 1)) * canvasFuente.width) + (x + (kernelX - 1))) * 4;
+        
+                            totalR_X += sobelHorizontal[kernelY][kernelX] * pixelesFuente[pixelIdx];
+                            totalR_Y += sobelVertical[kernelY][kernelX] * pixelesFuente[pixelIdx];
+        
+                            totalG_X += sobelHorizontal[kernelY][kernelX] * pixelesFuente[pixelIdx + 0];
+                            totalG_Y += sobelVertical[kernelY][kernelX] * pixelesFuente[pixelIdx + 0];
+        
+                            totalB_X += sobelHorizontal[kernelY][kernelX] * pixelesFuente[pixelIdx + 2];
+                            totalB_Y += sobelVertical[kernelY][kernelX] * pixelesFuente[pixelIdx + 2];
+                        }
+                    }
+        
+                    var magR = Math.sqrt((totalR_X * totalR_X) + (totalR_Y * totalR_Y));
+                    var magG = Math.sqrt((totalG_X * totalG_X) + (totalG_Y * totalG_Y));
+                    var magB = Math.sqrt((totalB_X * totalB_X) + (totalB_Y * totalB_Y));
+        
+                    pixelesDestino[idx] = pixelesFuente[idx]; // Rojo
+                    pixelesDestino[idx + 1] = pixelesFuente[idx + 1]; // Verde
+                    pixelesDestino[idx + 2] = pixelesFuente[idx + 2]; // Azul
+                    pixelesDestino[idx + 3] = pixelesFuente[idx + 3]; // Alpha
+
+
+                    // Asignar los resultados a los canales de color individuales
+                    pixelesDestino[idx] += magR;
+                    pixelesDestino[idx + 1] += magG;
+                    pixelesDestino[idx + 2] += magB;
+                    
+
+                }
+            }
+
+            ctxDestino.putImageData(imgDataDestino, 0, 0);
+        }
+
+    </script>
+ </body>
+ </html>
